@@ -51,6 +51,7 @@ public class ScheduleController {
     public ResponseDto checkschedule(@PathVariable int id) {
         Schedule schedule = findById(id);
         if (schedule != null) {
+            schedule.setPassword(null);
             return new ResponseDto(schedule);
         } else {
             throw new IllegalArgumentException("일정이 존재하지 않습니다.");
@@ -59,7 +60,7 @@ public class ScheduleController {
 
     @GetMapping("/schedule")
     public List<ResponseDto> getschedule(@RequestParam(required = false) String manager, @RequestParam(required = false) LocalDateTime updateday) {
-        String sql = "SELECT * FROM schedule";
+        String sql = "SELECT * FROM schedule order by updateday DESC";
         List<Schedule> schedules = jdbcTemplate.query(sql, new RowMapper<Schedule>() {
             @Override
             public Schedule mapRow(ResultSet resultSet, int rowNum) throws SQLException {
@@ -93,6 +94,7 @@ public class ScheduleController {
                     schedule.setId(resultSet.getInt("id"));
                     schedule.setManager(resultSet.getString("manager"));
                     schedule.setContents(resultSet.getString("contents"));
+                    schedule.setPassword(resultSet.getString("password"));
                     schedule.setFirstday(resultSet.getTimestamp("firstday").toLocalDateTime());
                     schedule.setUpdateday(resultSet.getTimestamp("updateday").toLocalDateTime());
                     return schedule;
@@ -100,6 +102,47 @@ public class ScheduleController {
             }, id);
         } catch (EmptyResultDataAccessException e) {
             return null;
+        }
+    }
+    @PutMapping("/schedule/{id}")
+    public Schedule update(@PathVariable int id, @RequestParam String password,@RequestBody RequestDto requestDto){
+
+        Schedule schedule = findById(id);
+
+
+        if (schedule != null) {
+            String sql = "UPDATE schedule SET manager = ?, contents = ?, updateday =? WHERE id = ?";
+            if(schedule.getPassword().equals(password)){
+                jdbcTemplate.update(sql,
+                        requestDto.getManager(),requestDto.getContents(),LocalDateTime.now(), id);
+
+                return  schedule;
+            }else {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
+
+
+        } else {
+            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
+        }
+    }
+    @DeleteMapping("/schedule/{id}")
+    public Schedule delete(@PathVariable int id, @RequestParam String password){
+        Schedule schedule = findById(id);
+
+        if (schedule != null) {
+            String sql = "DELETE FROM schedule WHERE id = ?";
+            if(schedule.getPassword().equals(password)){
+                jdbcTemplate.update(sql, id);
+
+                return  schedule;
+            }else {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
+
+
+        } else {
+            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
         }
     }
 }
