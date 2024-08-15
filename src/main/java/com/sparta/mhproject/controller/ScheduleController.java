@@ -3,6 +3,7 @@ package com.sparta.mhproject.controller;
 import com.sparta.mhproject.dto.RequestDto;
 import com.sparta.mhproject.dto.ResponseDto;
 import com.sparta.mhproject.object.Schedule;
+import com.sparta.mhproject.service.Scheduleservice;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -26,123 +27,40 @@ public class ScheduleController {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    //일정 등록
     @PostMapping("/schedule")
     public ResponseDto addschedule(@RequestBody RequestDto requestDto) {
-        Schedule schedule = new Schedule(requestDto);
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        String sql = "INSERT INTO schedule (manager, password, contents, firstday, updateday) VALUES (?, ?, ?, ?, ?)";
-        jdbcTemplate.update(con -> {
-                    PreparedStatement preparedStatement = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-                    preparedStatement.setString(1, schedule.getManager());
-                    preparedStatement.setString(2, schedule.getPassword());
-                    preparedStatement.setString(3, schedule.getContents());
-                    preparedStatement.setTimestamp(4, java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()));
-                    preparedStatement.setTimestamp(5, java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()));
-                    return preparedStatement;
-                },
-                keyHolder);
-        int id = keyHolder.getKey().intValue();
-        schedule.setId(id);
-        ResponseDto responseDto = new ResponseDto(schedule);
-        return responseDto;
+        // 3개로 쪼개기 위한 인스턴트화
+        // 1.객체 생성. 2. 리턴값 수정. 3. service 에 클래스 생성. 4. 옮기기 5. 생성자 변경 내용 확인
+        Scheduleservice scheduleservice = new Scheduleservice(jdbcTemplate);
+        return scheduleservice.addschedule(requestDto);
     }
 
+    //일정 1개 조회
     @GetMapping("/schedule/{id}")
     public ResponseDto checkschedule(@PathVariable int id) {
-        Schedule schedule = findById(id);
-        if (schedule != null) {
-            schedule.setPassword(null);
-            return new ResponseDto(schedule);
-        } else {
-            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
-        }
+        Scheduleservice scheduleservice = new Scheduleservice(jdbcTemplate);
+        return scheduleservice.checkschedule(id);
     }
 
+    //일정 여러개 조회
     @GetMapping("/schedule")
     public List<ResponseDto> getschedule(@RequestParam(required = false) String manager, @RequestParam(required = false) LocalDateTime updateday) {
-        String sql = "SELECT * FROM schedule order by updateday DESC";
-        List<Schedule> schedules = jdbcTemplate.query(sql, new RowMapper<Schedule>() {
-            @Override
-            public Schedule mapRow(ResultSet resultSet, int rowNum) throws SQLException {
-                Schedule schedule = new Schedule();
-                schedule.setId(resultSet.getInt("id"));
-                schedule.setManager(resultSet.getString("manager"));
-                schedule.setContents(resultSet.getString("contents"));
-                schedule.setFirstday(resultSet.getTimestamp("firstday").toLocalDateTime());
-                schedule.setUpdateday(resultSet.getTimestamp("updateday").toLocalDateTime());
-                return schedule;
-            }
-        });
-
-        List<ResponseDto> responseDtos = new ArrayList<>();
-        for (Schedule schedule : schedules) {
-            if ((manager == null || manager.equals(schedule.getManager())) &&
-                    (updateday == null || updateday.equals(schedule.getUpdateday()))) {
-                responseDtos.add(new ResponseDto(schedule));
-            }
-        }
-        return responseDtos;
+        Scheduleservice scheduleservice = new Scheduleservice(jdbcTemplate);
+        return scheduleservice.getschedule(manager, updateday);
     }
 
-    public Schedule findById(int id) {
-        String sql = "SELECT * FROM schedule WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, new RowMapper<Schedule>() {
-                @Override
-                public Schedule mapRow(ResultSet resultSet, int rowNum) throws SQLException {
-                    Schedule schedule = new Schedule();
-                    schedule.setId(resultSet.getInt("id"));
-                    schedule.setManager(resultSet.getString("manager"));
-                    schedule.setContents(resultSet.getString("contents"));
-                    schedule.setPassword(resultSet.getString("password"));
-                    schedule.setFirstday(resultSet.getTimestamp("firstday").toLocalDateTime());
-                    schedule.setUpdateday(resultSet.getTimestamp("updateday").toLocalDateTime());
-                    return schedule;
-                }
-            }, id);
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
+    //일정 수정
     @PutMapping("/schedule/{id}")
     public Schedule update(@PathVariable int id, @RequestParam String password,@RequestBody RequestDto requestDto){
-
-        Schedule schedule = findById(id);
-
-
-        if (schedule != null) {
-            String sql = "UPDATE schedule SET manager = ?, contents = ?, updateday =? WHERE id = ?";
-            if(schedule.getPassword().equals(password)){
-                jdbcTemplate.update(sql,
-                        requestDto.getManager(),requestDto.getContents(),LocalDateTime.now(), id);
-
-                return  schedule;
-            }else {
-                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-            }
-
-
-        } else {
-            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
-        }
+        Scheduleservice scheduleservice = new Scheduleservice(jdbcTemplate);
+        return scheduleservice.update(id, password, requestDto);
     }
+
+    //일정 삭제
     @DeleteMapping("/schedule/{id}")
     public Schedule delete(@PathVariable int id, @RequestParam String password){
-        Schedule schedule = findById(id);
-
-        if (schedule != null) {
-            String sql = "DELETE FROM schedule WHERE id = ?";
-            if(schedule.getPassword().equals(password)){
-                jdbcTemplate.update(sql, id);
-
-                return  schedule;
-            }else {
-                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-            }
-
-
-        } else {
-            throw new IllegalArgumentException("일정이 존재하지 않습니다.");
-        }
+        Scheduleservice scheduleservice = new Scheduleservice(jdbcTemplate);
+        return scheduleservice.delete(id, password);
     }
 }
