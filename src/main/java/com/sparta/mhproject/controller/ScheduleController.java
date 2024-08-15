@@ -31,7 +31,6 @@ public class ScheduleController {
     @PostMapping("/schedule")
     public ResponseDto addschedule(@RequestBody RequestDto requestDto) {
         // 3개로 쪼개기 위한 인스턴트화
-        // 1.객체 생성. 2. 리턴값 수정. 3. service 에 클래스 생성. 4. 옮기기 5. 생성자 변경 내용 확인
         Scheduleservice scheduleservice = new Scheduleservice(jdbcTemplate);
         return scheduleservice.addschedule(requestDto);
     }

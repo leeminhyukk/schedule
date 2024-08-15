@@ -30,6 +30,7 @@ public class ScheduleRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         String sql = "INSERT INTO schedule (manager, password, contents, firstday, updateday) VALUES (?, ?, ?, ?, ?)";
         jdbcTemplate.update(con -> {
+                    // sql = 에 있는 순서대로 값을 넣는다. 등록,수정 시간은 컴퓨터 현재시간으로 처리.
                     PreparedStatement preparedStatement = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                     preparedStatement.setString(1, schedule.getManager());
                     preparedStatement.setString(2, schedule.getPassword());
